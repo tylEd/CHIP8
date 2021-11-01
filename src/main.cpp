@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
         SDL_RenderPresent(renderer);
     }
 
-    // Destroy window
+    SDL_DestroyTexture(c8Screen);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 
