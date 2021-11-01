@@ -1,0 +1,28 @@
+{
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "linux": {
+                "command": "${workspaceFolder}/build_linux.sh",
+            },
+            "osx": {
+                "command": "${workspaceFolder}/build_mac.sh",
+            },
+            "windows": {
+                "command": "${workspaceFolder}/build_win.bat",
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ],
+    "version": "2.0.0"
+}
