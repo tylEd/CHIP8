@@ -1,26 +1,47 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unordered_map>
 #include <SDL.h>
 
 #include "chip8.h"
+
+const int SCREEN_WIDTH = 1280;
+const int SCREEN_HEIGHT = 640;
+
+const uint32_t onColor = 0xFFFFFFFF;
+const uint32_t offColor = 0x00000000;
 
 void *LoadEntireBinaryFile(const char *fname, int *size);
 void CopyDisplayToTexture(CHIP8 &vm, SDL_Texture *tex);
 int KeyMap(Uint32 sdlKey);
 
-const uint32_t onColor = 0xFFFFFFFF;
-const uint32_t offColor = 0x00000000;
-
-int main(int argc, char *args[])
+int main(int argc, char *argv[])
 {
+    //
+    // Load ROM and Initialize CHIP-8
+    //
+
+    if (argc != 2)
+    {
+        fprintf(stderr, "Usage:\n%s <rom_file>\n", argv[0]);
+        exit(1);
+    }
+
+    const char *romFile = argv[1];
     int romSize = 0;
-    uint8_t *romData = (uint8_t *)LoadEntireBinaryFile("games/INVADERS", &romSize);
+    uint8_t *romData = (uint8_t *)LoadEntireBinaryFile(romFile, &romSize);
+    if (romData == NULL)
+    {
+        fprintf(stderr, "ERROR: Failed to load ROM\n");
+        exit(1);
+    }
 
     CHIP8 vm;
     vm.LoadROM(romData, romSize);
 
-    // SDL Setup
+    //
+    // Setup SDL
+    //
+
     SDL_Window *window;
     SDL_Renderer *renderer;
 
@@ -30,8 +51,6 @@ int main(int argc, char *args[])
         exit(1);
     }
 
-    const int SCREEN_WIDTH = 640;
-    const int SCREEN_HEIGHT = 320;
     window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (window == NULL)
     {
@@ -46,23 +65,22 @@ int main(int argc, char *args[])
         exit(1);
     }
 
-    SDL_Texture *c8Screen = SDL_CreateTexture(renderer,
-                                              SDL_PIXELFORMAT_RGBA8888,
-                                              SDL_TEXTUREACCESS_STREAMING,
-                                              64, 32);
+    SDL_Texture *c8Screen = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, CHIP8::DISPLAY_WIDTH, CHIP8::DISPLAY_HEIGHT);
     if (c8Screen == NULL)
     {
         printf("Screen texture could not be created! SDL Error: %s\n", SDL_GetError());
         exit(1);
     }
 
-    int lastFrameTime = 0;
+    //
+    // Main loop
+    //
+
+    int lastFrameTime = SDL_GetTicks();
     float dt = 0.0f;
 
-    bool quit = false;
     SDL_Event e;
-    
-    // Main loop
+    bool quit = false;
     while (!quit)
     {
         /* Delta Time */
@@ -70,10 +88,10 @@ int main(int argc, char *args[])
         dt = (thisFrameTime - lastFrameTime) / 1000.0f;
         lastFrameTime = thisFrameTime;
 
-        /* Events */
+        /* Input Events */
         while (SDL_PollEvent(&e) != 0)
         {
-            //User requests quit
+            // User requests quit
             if (e.type == SDL_QUIT)
             {
                 quit = true;
@@ -81,7 +99,7 @@ int main(int argc, char *args[])
             else if (e.type == SDL_KEYDOWN)
             {
                 int key = KeyMap(e.key.keysym.scancode);
-                if (key != -1)
+                if (key != -1 && !e.key.repeat)
                     vm.KeyPressed(key);
             }
             else if (e.type == SDL_KEYUP)
@@ -99,19 +117,19 @@ int main(int argc, char *args[])
         SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderClear(renderer);
 
-        // copy screen from vm to c8Screen
+        // Copy screen from vm to c8Screen texture
         CopyDisplayToTexture(vm, c8Screen);
 
-        // copy texture to the screen
+        // Render the screen to the window
         SDL_Rect dstRect = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
         SDL_Rect srcRect = {0, 0, 64, 32};
         SDL_RenderCopy(renderer, c8Screen, &srcRect, &dstRect);
 
-        //Update screen
+        // Update screen
         SDL_RenderPresent(renderer);
     }
 
-    //Destroy window
+    // Destroy window
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 
@@ -164,7 +182,8 @@ void CopyDisplayToTexture(CHIP8 &vm, SDL_Texture *tex)
     SDL_UnlockTexture(tex);
 }
 
-int KeyMap(Uint32 sdlKey) {
+int KeyMap(Uint32 sdlKey)
+{
     switch (sdlKey)
     {
     case SDL_SCANCODE_KP_PERIOD:

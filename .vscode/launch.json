@@ -10,7 +10,7 @@
             "type": "lldb", // CodeLLDB Extension
             "request": "launch",
             "program": "${workspaceFolder}/build/mac/chip8",
-            "args": [],
+            "args": ["games/INVADERS"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/res",
             "environment": [],
